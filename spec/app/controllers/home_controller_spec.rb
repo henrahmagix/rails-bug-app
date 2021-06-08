@@ -4,7 +4,11 @@ describe HomeController, type: :controller do
   describe '#show' do
     subject { response }
 
+    # controller {} # uncomment this to make all tests below fail at `get :show` with `ActionController::UrlGenerationError`
+
     before { get :show, params: params, session: nil }
+
+    controller {} # but here is fine, after `before`
 
     let(:params) { {} }
 
