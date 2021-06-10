@@ -5,6 +5,10 @@ describe RedirectIfRequestedConcern, type: :controller do
     include RedirectIfRequestedConcern
 
     def test
+      path_routes = _routes.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') }
+      puts "In test controller method: #{path_routes.count}"
+      puts path_routes.map { |r| "\t#{r}" }
+
       render plain: 'Test controller, test method'
     end
   end
@@ -13,6 +17,11 @@ describe RedirectIfRequestedConcern, type: :controller do
 
   before do
     routes.draw { get 'test' => 'anonymous#test' }
+
+    path_routes = routes.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') }
+    puts "In test before hook: #{path_routes.count}"
+    puts path_routes.map { |r| "\t#{r}" }
+
     get :test, params: params, session: nil
   end
 
