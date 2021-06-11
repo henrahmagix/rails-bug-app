@@ -1,11 +1,13 @@
 require 'rails_helper'
 
+n = 0
+
 describe RedirectIfRequestedConcern, type: :controller do
   controller(ActionController::Base) do
     include RedirectIfRequestedConcern
 
     def test
-      path_routes = _routes.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') }
+      path_routes = _routes.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') && r.exclude?('rails_') }
       puts "In test controller method: #{path_routes.count}"
       puts path_routes.map { |r| "\t#{r}" }
 
@@ -16,9 +18,14 @@ describe RedirectIfRequestedConcern, type: :controller do
   subject { response }
 
   before do
-    routes.draw { get 'test' => 'anonymous#test' }
+    n+=1
+    puts "N=#{n}"
+    routes.draw do
+      get 'test' => 'anonymous#test'
+      get "n_#{n}" => 'anonymous#test'
+    end
 
-    path_routes = routes.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') }
+    path_routes = routes.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') && r.exclude?('rails_') }
     puts "In test before hook: #{path_routes.count}"
     puts path_routes.map { |r| "\t#{r}" }
 

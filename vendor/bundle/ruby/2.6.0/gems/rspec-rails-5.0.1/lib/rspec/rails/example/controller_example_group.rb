@@ -91,13 +91,37 @@ module RSpec
                             end
             resource_module = resource_path.rpartition('/').first.presence
             resource_as = 'anonymous_' + resource_path.tr('/', '_')
-            self.routes = ActionDispatch::Routing::RouteSet.new.tap do |r|
+            self.routes = @orig_routes.dup.tap do |r|
+              props_to_dup = %i[set formatter named_routes default_scope router resources_path_names default_url_options draw_paths]
+              props_to_dup.each { |prop| r.public_send("#{prop}=", @orig_routes.public_send(prop)&.dup) }
+
+              # The instance variables of ActionDispatch::Journey::Routes are
+              # not duplicated and so changes made here in r.draw persist across
+              # multiple tests. However, trying to duplicate them breaks the
+              # RedirectIfRequestedConcern spec as the anonymous#test route
+              # drawn up by the test cannot be found. AND this doesn't solve the
+              # persistence issue, so there's more that needs deep-duplicating.
+              # See vendor/bundle/ruby/2.6.0/gems/actionpack-6.1.3.2/lib/action_dispatch/journey/routes.rb
+              # route_set_internals_to_dup = %i[@routes @custom_routes @anchored_routes]
+              # route_set_internals_to_dup.each do |var|
+              #   r.set.instance_variable_set(var, @orig_routes.set.instance_variable_get(var)&.dup)
+              # end
+
+              path_routes = r.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') && r.exclude?('rails_') }
+              puts "Before cloned routes drawing: #{path_routes.count}"
+              puts path_routes.map { |r| "\t#{r}" }
+
+              r.disable_clear_and_finalize = true
               r.draw do
                 resources resource_name,
                           as: resource_as,
                           module: resource_module,
                           path: resource_path
               end
+
+              path_routes = r.named_routes.helper_names.map(&:to_s).sort.select { |r| r.end_with?('_path') && r.exclude?('rails_') }
+              puts "After cloned routes drawing: #{path_routes.count}"
+              puts path_routes.map { |r| "\t#{r}" }
             end
           end
 
